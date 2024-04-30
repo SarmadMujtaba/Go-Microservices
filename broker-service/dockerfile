@@ -1,0 +1,20 @@
+#  Base (heavier) image
+FROM golang:1.18-alpine as base
+
+RUN mkdir /app
+
+COPY . /app
+
+WORKDIR /app
+
+RUN go build -o brokerApp ./cmd/api
+
+# Lighter image (contains just executable)
+
+FROM alpine:latest
+
+RUN mkdir /app
+
+COPY --from=base /app/brokerApp /app
+
+CMD ["/app/brokerApp"]

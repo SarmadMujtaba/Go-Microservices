@@ -1,0 +1,19 @@
+version: '3'
+
+services:
+
+  broker-service:
+    build: 
+      context: "./../broker-service"
+      dockerfile: "./../broker-service/dockerfile"
+
+    restart: always
+    ports:
+      - "3001:3001"
+
+    deploy:
+      mode: replicated
+      replicas: 1
+
+    extra_hosts:
+    - "host.docker.internal:host-gateway"
