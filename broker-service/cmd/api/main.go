@@ -13,7 +13,7 @@ type Config struct{}
 func main() {
 	app := Config{}
 
-	log.Printf("Listening on Port: %s", Port)
+	log.Printf("Broker - Listening on Port: %s", Port)
 
 	// Define Server
 	server := &http.Server{
