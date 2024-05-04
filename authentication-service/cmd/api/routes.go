@@ -9,7 +9,7 @@ import (
 func (app *Config) routes() http.Handler {
 	route := mux.NewRouter()
 
-	// route.HandleFunc("/", app.Broker).Methods(http.MethodPost)
+	route.HandleFunc("/authenticate", app.Authenticate).Methods(http.MethodPost)
 
 	http.ListenAndServe(":"+Port, route)
 	return route

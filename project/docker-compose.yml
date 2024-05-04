@@ -45,7 +45,7 @@ services:
 
     restart: always
     ports:
-      - "3002:3001"
+      - "3002:3002"
 
     deploy:
       mode: replicated

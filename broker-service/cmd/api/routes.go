@@ -10,6 +10,7 @@ func (app *Config) routes() http.Handler {
 	route := mux.NewRouter()
 
 	route.HandleFunc("/", app.Broker).Methods(http.MethodPost)
+	route.HandleFunc("/handle", app.HandleSubmission).Methods(http.MethodPost)
 
 	http.ListenAndServe(":"+Port, route)
 	return route
