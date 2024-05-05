@@ -6,35 +6,41 @@ services:
     build: 
       context: "./../broker-service"
       dockerfile: "./../broker-service/dockerfile"
-
     restart: always
     ports:
       - "3001:3001"
-
     deploy:
       mode: replicated
       replicas: 1
+    extra_hosts:
+    - "host.docker.internal:host-gateway"
 
+# Logger doesn't have ports as it is exposed to other services only (not to local PC)
+  logger-service:
+    build: 
+      context: "./../logger-service"
+      dockerfile: "./../logger-service/dockerfile"
+    restart: always
+    deploy:
+      mode: replicated
+      replicas: 1
+    ports:
+      - "3003:3003"
     extra_hosts:
     - "host.docker.internal:host-gateway"
 
   postgres:
     image: 'postgres:14.0'
-
     ports:
       - "5432:5432"
-
     restart: always
-
     deploy:
       mode: replicated
       replicas: 1
-
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
       POSTGRES_DB: users
-
     volumes:
       - "./data/postgres:/var/lib/postgresql/data/"
 
@@ -42,19 +48,26 @@ services:
     build: 
       context: "./../authentication-service"
       dockerfile: "./../authentication-service/dockerfile"
-
     restart: always
     ports:
       - "3002:3002"
-
     deploy:
       mode: replicated
       replicas: 1
-
     extra_hosts:
     - "host.docker.internal:host-gateway"
-
     environment:
       DSN: "host=postgres port=5432 user=postgres password=password dbname=users sslmode=disable timezone=UTC connect_timeout=5"
+
+  mongo:
+    image: "mongo:4.2.16-bionic"
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: logs
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+
+
 
 
