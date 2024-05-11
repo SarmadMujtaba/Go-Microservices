@@ -4,13 +4,15 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	event "main/events"
 	"net/http"
 )
 
 type RequestPayload struct {
-	Action string      `json:"action"`
-	Auth   AuthPayload `json:"auth,omitempty"`
-	Log    LogPayload  `json:"log,omitempty"`
+	Action    string      `json:"action"`
+	Auth      AuthPayload `json:"auth,omitempty"`
+	Log       LogPayload  `json:"log,omitempty"`
+	LogRabbit LogPayload  `json:"log-rabbit,omitempty"`
 }
 
 type AuthPayload struct {
@@ -47,6 +49,9 @@ func (app *Config) HandleSubmission(w http.ResponseWriter, r *http.Request) {
 
 	case "log":
 		app.logItem(w, requestPayload.Log)
+
+	case "log-rabbit":
+		app.logEventViaRabbit(w, requestPayload.LogRabbit)
 
 	default:
 		app.errorJSON(w, errors.New("unknown action"))
@@ -135,4 +140,39 @@ func (app *Config) authenticate(w http.ResponseWriter, a AuthPayload) {
 	payload.Data = jsonFromService.Data
 
 	app.writeJSON(w, http.StatusAccepted, payload)
+}
+
+// logEventViaRabbit logs an event using the logger-service. It makes the call by pushing the data to RabbitMQ.
+func (app *Config) logEventViaRabbit(w http.ResponseWriter, l LogPayload) {
+	err := app.pushToQueue(l.Name, l.Data)
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+
+	var payload jsonResponse
+	payload.Error = false
+	payload.Message = "logged via RabbitMQ"
+
+	app.writeJSON(w, http.StatusAccepted, payload)
+}
+
+// pushToQueue pushes a message into RabbitMQ
+func (app *Config) pushToQueue(name, msg string) error {
+	emitter, err := event.NewEventEmitter(app.Rabbit)
+	if err != nil {
+		return err
+	}
+
+	payload := LogPayload{
+		Name: name,
+		Data: msg,
+	}
+
+	j, _ := json.MarshalIndent(&payload, "", "\t")
+	err = emitter.Push(string(j), "log.INFO")
+	if err != nil {
+		return err
+	}
+	return nil
 }

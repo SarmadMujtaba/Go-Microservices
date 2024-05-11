@@ -68,6 +68,27 @@ services:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: password
 
+  rabbitmq:
+    image: "rabbitmq:3.9-alpine"
+    ports:
+      - "5672:5672"
+    deploy:
+      mode: replicated
+      replicas: 1
+
+  listener-service:
+    build: 
+      context: "./../listener-service"
+      dockerfile: "./../listener-service/dockerfile"
+    restart: always
+    ports:
+      - "3004:3004"
+    deploy:
+      mode: replicated
+      replicas: 1
+    extra_hosts:
+    - "host.docker.internal:host-gateway"
+
 
 
 
