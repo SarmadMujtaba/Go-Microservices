@@ -6,6 +6,7 @@ import (
 	"errors"
 	event "main/events"
 	"net/http"
+	"net/rpc"
 )
 
 type RequestPayload struct {
@@ -13,6 +14,7 @@ type RequestPayload struct {
 	Auth      AuthPayload `json:"auth,omitempty"`
 	Log       LogPayload  `json:"log,omitempty"`
 	LogRabbit LogPayload  `json:"log-rabbit,omitempty"`
+	LogRPC    LogPayload  `json:"log-rpc,omitempty"`
 }
 
 type AuthPayload struct {
@@ -52,6 +54,9 @@ func (app *Config) HandleSubmission(w http.ResponseWriter, r *http.Request) {
 
 	case "log-rabbit":
 		app.logEventViaRabbit(w, requestPayload.LogRabbit)
+
+	case "log-rpc":
+		app.logEventViaRPC(w, requestPayload.LogRabbit)
 
 	default:
 		app.errorJSON(w, errors.New("unknown action"))
@@ -175,4 +180,36 @@ func (app *Config) pushToQueue(name, msg string) error {
 		return err
 	}
 	return nil
+}
+
+type RPCPayload struct {
+	Name string
+	Data string
+}
+
+func (app *Config) logEventViaRPC(w http.ResponseWriter, l LogPayload) {
+	client, err := rpc.Dial("tcp", "logger-service:5001")
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+
+	rpcPayload := RPCPayload{
+		Name: l.Name,
+		Data: l.Data,
+	}
+
+	var result string
+	err = client.Call("RPCServer.LogInfo", rpcPayload, &result)
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+
+	payload := jsonResponse{
+		Error:   false,
+		Message: result,
+	}
+
+	app.writeJSON(w, http.StatusAccepted, payload)
 }
